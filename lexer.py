@@ -17,12 +17,10 @@ tokens_provisorios = [
     ('TOKEN_INEX', r'.'), #Se existir um token que n seja igual os de cima ele entra aqui e sei que é um erro
 ]
 
-keywords = {'if', 'while', 'for', 'return', 'main', 'int', 'float', 'char'
-            }
+keywords = {'if', 'while', 'for', 'return', 'main', 'int', 'float', 'char'}
 
 toke_regex_jun = '|'.join(f'(?P<{name}>{pattern})'
                           for name, pattern in tokens_provisorios) #o '|' junta todos os grupos de regex em um unico e depois disso vc só nomeou os grupos e o parten e r'...'
-
 
 def lexer(code):
     linha =1
