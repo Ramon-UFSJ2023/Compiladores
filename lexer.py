@@ -9,10 +9,11 @@ tokens_provisorios = [
     ('IDENT', r'[a-zA-Z_]\w*'), # aqui esta dizendo que aceita qualquer letra maiscula ou minusculas, o \w é o simbolo para aceitar letra ou numero
     ('OPER', r'[+\-*/%]'), #Aqui foi necessario usar o \ pra dizer que é literalmente minus e não criar um espaço de um ponto ao outro como a-z
     ('OPER_LOG', r'&&|\|\||!=|!|<=|>=|<|>|=='), #no regex o | sem o literalmente(\) é OU por isso ele veio logo após o &&
+    #Em OPER_LOG eu n coloquei dentro de uma lista, pq quando crio uma lista é selecionado apenas uma opção ent o && n funcionaria
     ('OPER_ATRIBUI', r'='), # é o operador de atribuição
     ('SKIP', r'[ \t\r]+'), # o espaço vazio é realmente que aceita um espaço e o \t é o tab. O + é pra aceitar mais de um espaço ou tab
     ('NEW_LINE', r'\n'), #é só a quebra de linha
-    ('DELIM', r'\(|\)|;|\{|\}'), #aqui eu só criar delimitadores e pode ser qualquer um deles
+    ('DELIM', r'[();{}]'), #aqui eu só criar delimitadores e pode ser qualquer um deles, como estão dentro de uma lista não preciso usar o literal(\)
     ('TOKEN_INEX', r'.'), #Se existir um token que n seja igual os de cima ele entra aqui e sei que é um erro
 ]
 
@@ -55,7 +56,7 @@ def main():
         for token in lexer(Code):
             tipo, valor, linha, coluna = token
 
-            if token[0] == 'TOKEN_INEX':
+            if token[0] == 'TOKEN_INEX': #Verifica se o token é inexistente e se for printa ela e a linha e coluna
                 print(f"Erro lexico: Caractere inexistente {valor!r} na linha {linha}, coluna {coluna}")
             else:
                 print(f"Token: {tipo: <15} | Valor: {valor}")
