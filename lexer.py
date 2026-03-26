@@ -39,10 +39,7 @@ def lexer(code):
         
         if kind == 'SKIP':
             continue
-        
-        if kind == 'TOKEN_INEX':
-            coluna = match.start()-inicio_linha+1 #posição atual do token menos o inicio da linha+1, o match.sart retorna o local onde o token foi encontrado
-        
+        coluna = match.start()-inicio_linha+1 #posição atual do token menos o inicio da linha+1, o match.sart retorna o local onde o token foi encontrado
         yield(kind, value, linha, coluna)
 
 def main():
