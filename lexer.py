@@ -1,4 +1,5 @@
 import re
+import sys
 
 
 #O \ no regex é pra falar que quero usar literalmente os significados do simbolo. Ex r'\.', literalmente usar o ponto, enquanto r'.' é qualquer caractere
@@ -11,9 +12,11 @@ tokens_provisorios = [
     ('OPER_ATRIBUI', r'='), # é o operador de atribuição
     ('SKIP', r'[ \t]+'), # o espaço vazio é realmente que aceita um espaço e o \t é o tab. O + é pra aceitar mais de um espaço ou tab
     ('NEW_LINE', r'\n'), #é só a quebra de linha
+    ('DELIM', r'\(|\)|;|\{|\}'), #aqui eu só criar delimitadores e pode ser qualquer um deles
 ]
 
-keywords = {'if', 'while', 'for', 'return', 'main'}
+keywords = {'if', 'while', 'for', 'return', 'main', 'int', 'float', 'char'
+            }
 
 toke_regex_jun = '|'.join(f'(?P<{name}>{pattern})'
                           for name, pattern in tokens_provisorios) #o '|' junta todos os grupos de regex em um unico e depois disso vc só nomeou os grupos e o parten e r'...'
@@ -29,3 +32,22 @@ def lexer(code):
         if kind == 'SKIP':
             continue
         yield(kind, value)
+
+def main():
+    if len(sys.argv)<2:
+        print("Passe o arquivo.txt quando for executar")
+        return
+    Code_txt = sys.argv[1]
+
+    try: 
+        with open(Code_txt, 'r') as arq:
+            Code = arq.read() #le o arquivo e guarda todo na variavel
+        print(f"Analisando: {Code_txt}\n")
+        for token in lexer(Code):
+            print(token)
+    except FileNotFoundError:
+        print("Escreveu o nome do arquivo errado animal.\n")
+
+
+if __name__ == '__main__':
+    main()
