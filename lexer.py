@@ -10,7 +10,7 @@ tokens_provisorios = [
     ('OPER', r'[+\-*/%]'), #Aqui foi necessario usar o \ pra dizer que é literalmente minus e não criar um espaço de um ponto ao outro como a-z
     ('OPER_LOG', r'&&|\|\||!=|!|<=|>=|<|>|=='), #no regex o | sem o literalmente(\) é OU por isso ele veio logo após o &&
     ('OPER_ATRIBUI', r'='), # é o operador de atribuição
-    ('SKIP', r'[ \t]+'), # o espaço vazio é realmente que aceita um espaço e o \t é o tab. O + é pra aceitar mais de um espaço ou tab
+    ('SKIP', r'[ \t\r]+'), # o espaço vazio é realmente que aceita um espaço e o \t é o tab. O + é pra aceitar mais de um espaço ou tab
     ('NEW_LINE', r'\n'), #é só a quebra de linha
     ('DELIM', r'\(|\)|;|\{|\}'), #aqui eu só criar delimitadores e pode ser qualquer um deles
     ('TOKEN_INEX', r'.'), #Se existir um token que n seja igual os de cima ele entra aqui e sei que é um erro
@@ -32,7 +32,8 @@ def lexer(code):
         if kind == 'NEW_LINE':
             linha+=1
             inicio_linha = match.end() #a proxima linha começa dps do \n, retorna a posição depois do token encontrado e a proxima linha começa no mach.end()
-        
+            continue
+
         if kind == 'IDENT' and value in keywords:
             kind = value.upper() #Se achar uma palavra reservada que sera lida como um token de identificação ele deixa em caixa alta 
         
@@ -41,10 +42,8 @@ def lexer(code):
         
         if kind == 'TOKEN_INEX':
             coluna = match.start()-inicio_linha+1 #posição atual do token menos o inicio da linha+1, o match.sart retorna o local onde o token foi encontrado
-            raise RuntimeError(f'Erro Léxico na linha {linha}, coluna{coluna}: Caractere: {value!r}')
-            yield(kind, value, linha, coluna)
-        else:
-            yield(kind, value)
+        
+        yield(kind, value, linha, coluna)
 
 def main():
     if len(sys.argv)<2:
@@ -57,13 +56,13 @@ def main():
             Code = arq.read() #le o arquivo e guarda todo na variavel
         print(f"Analisando: {Code_txt}\n")
         for token in lexer(Code):
+            tipo, valor, linha, coluna = token
+
             if token[0] == 'TOKEN_INEX':
-                tipo, valor, linha, coluna = token
                 print(f"Erro lexico: Caractere inexistente {valor!r} na linha {linha}, coluna {coluna}")
             else:
-                tipo, valor = token
                 print(f"Token: {tipo: <15} | Valor: {valor}")
-                
+
     except FileNotFoundError:
         print("Escreveu o nome do arquivo errado animal.\n")
 
