@@ -2,7 +2,7 @@ import re
 import sys
 
 
-#O \ no regex é pra falar que quero usar literalmente os significados do simbolo. Ex r'\.', literalmente usar o ponto, enquanto r'.' é qualquer caractere
+#O '\' no regex é pra falar que quero usar literalmente os significados do simbolo. Ex r'\.', literalmente usar o ponto, enquanto r'.' é qualquer caractere
 tokens_provisorios = [
     ('NUM_FLOAT', r'\d+(\.\d+)' ), #o \d significa numero, o + significa que aceita mais de um numero "(\.\d+)" eu tinha deixado como opcional ter numeros dps do ponto, mas ai numeros inteiros n iriam entrar dentro de int
     ('NUM_INT', r'\d+'), #mesma coisa que o float só que aqui só aceita numeros inteiros, importante para diferenciar int e float quando for compilar o codigo
@@ -25,21 +25,25 @@ toke_regex_jun = '|'.join(f'(?P<{name}>{pattern})'
 def lexer(code):
     linha =1
     inicio_linha=0
-    for match in re.finditer(toke_regex_jun, code):
-        kind = match.lastgroup
-        value = match.group()
+    for match in re.finditer(toke_regex_jun, code): #percorre o codigo e procura os tokens que se encaixam nas expressões regulares
+        kind = match.lastgroup #Nome do grupo que deu match ex: NUM_INT
+        value = match.group() # se o Kind acha o nome do grupo o value guarda oq foi achado
         if kind == 'NEW_LINE':
-            linha+=1
-            inicio_linha = match.end() #a proxima linha começa dps do \n, retorna a posição depois do token encontrado e a proxima linha começa no mach.end()
+            linha+=1 #se achei uma nova linha tem q incrementar na linha
+            inicio_linha = match.end() #É usado para calcular a coluna corretamente na proxima linha, ele aponta onde o \n termina logico aponta tambem onde começa a proxima linha
+            #como o regex le como se tudo fosse uma unica linha o \n delimita isso e partir disso vc define que quando achar o \n isso é uma nova linha, então quando encontrar um novo token a coluna vai ser calculada apartir dessa nova linha
+            #achada usando o match.end()
             continue
 
         if kind == 'IDENT' and value in keywords:
             kind = value.upper() #Se achar uma palavra reservada que sera lida como um token de identificação ele deixa em caixa alta 
         
         if kind == 'SKIP':
-            continue
-        coluna = match.start()-inicio_linha+1 #posição atual do token menos o inicio da linha+1, o match.sart retorna o local onde o token foi encontrado
-        yield(kind, value, linha, coluna)
+            continue #pra ignorar os espaços e os tab por exemplo int a =          8; Todo esse espaço é ignorado
+        coluna = match.start()-inicio_linha+1 #ele pega o local onde o token foi encontrado subtrai pelo inicio da linha que foi achado usando o match.end e dps soma 1 pra dar o valor correto
+        #somou 1 pq na programação o inicio é sempre zero mas pra editores de texto começa por 1 né
+    
+        yield(kind, value, linha, coluna) #retorna sem parar a execução
 
 def main():
     if len(sys.argv)<2:
