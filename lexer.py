@@ -58,14 +58,13 @@ def main():
         for token in lexer(Code):
             tipo, valor, linha, coluna = token
 
-            if token[0] == 'TOKEN_INEX': #Verifica se o token é inexistente e se for printa ela e a linha e coluna
+            if token[0] == 'TOKEN_INEX': #Verifica se o token é inexistente e se for printa ela e a linha e coluna, usa o [0] pq na mais é uma tupla que recebe 4 valores
                 print(f"Erro lexico: Caractere inexistente {valor!r} na linha {linha}, coluna {coluna}")
             else:
-                print(f"Token: {tipo: <15} | Valor: {valor}")
+                print(f"Token: {tipo: <15} | Valor: {valor}") #o <15 é só formatação do print pra ficar bonitinho mermo
 
     except FileNotFoundError:
         print("Escreveu o nome do arquivo errado animal.\n")
-
 
 if __name__ == '__main__':
     main()
