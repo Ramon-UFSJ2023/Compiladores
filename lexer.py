@@ -20,7 +20,7 @@ tokens_provisorios = [
 keywords = {'if', 'while', 'for', 'return', 'main', 'int', 'float', 'char'}
 
 toke_regex_jun = '|'.join(f'(?P<{name}>{pattern})'
-                          for name, pattern in tokens_provisorios) #o '|' junta todos os grupos de regex em um unico e depois disso vc só nomeou os grupos e o parten e r'...'
+                          for name, pattern in tokens_provisorios) #o '|' junta todos os grupos de regex em um unico e depois disso vc só nomeou os grupos e o partten e r'...'
 
 def lexer(code):
     linha =1
@@ -61,7 +61,7 @@ def main():
             if token[0] == 'TOKEN_INEX': #Verifica se o token é inexistente e se for printa ela e a linha e coluna, usa o [0] pq na mais é uma tupla que recebe 4 valores
                 print(f"Erro lexico: Caractere inexistente {valor!r} na linha {linha}, coluna {coluna}")
             else:
-                print(f"Token: {tipo: <15} | Valor: {valor}") #o <15 é só formatação do print pra ficar bonitinho mermo
+                print(f"Token: {tipo: <15} | Valor: {valor: <5} | Linha: {linha} | Coluna: {coluna}") #o <15 é só formatação do print pra ficar bonitinho mermo
 
     except FileNotFoundError:
         print("Escreveu o nome do arquivo errado animal.\n")
