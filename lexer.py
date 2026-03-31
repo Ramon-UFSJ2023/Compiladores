@@ -13,7 +13,7 @@ tokens_provisorios = [
     ('OPER_ATRIBUI', r'='), # é o operador de atribuição
     ('SKIP', r'[ \t\r]+'), # o espaço vazio é realmente que aceita um espaço e o \t é o tab. O + é pra aceitar mais de um espaço ou tab
     ('NEW_LINE', r'\n'), #é só a quebra de linha
-    ('DELIM', r'[();{}]'), #aqui eu só criar delimitadores e pode ser qualquer um deles, como estão dentro de uma lista não preciso usar o literal(\)
+    ('DELIM', r'[();{},]'), #aqui eu só criar delimitadores e pode ser qualquer um deles, como estão dentro de uma lista não preciso usar o literal(\)
     ('TOKEN_INEX', r'.'), #Se existir um token que n seja igual os de cima ele entra aqui e sei que é um erro
 ]
 
@@ -61,10 +61,10 @@ def main():
             if token[0] == 'TOKEN_INEX': #Verifica se o token é inexistente e se for printa ela e a linha e coluna, usa o [0] pq na mais é uma tupla que recebe 4 valores
                 print(f"Erro lexico: Caractere inexistente {valor!r} na linha {linha}, coluna {coluna}")
             else:
-                print(f"Token: {tipo: <15} | Valor: {valor: <5} | Linha: {linha} | Coluna: {coluna}") #o <15 é só formatação do print pra ficar bonitinho mermo
+                print(f"Token: {tipo: <15} | Valor: {valor: <10} | Linha: {linha} | Coluna: {coluna}") #o <15 é só formatação do print pra ficar bonitinho mermo
 
     except FileNotFoundError:
-        print("Escreveu o nome do arquivo errado animal.\n")
+        print("Escreveu o nome do arquivo errado animal.")
 
 if __name__ == '__main__':
     main()
