@@ -19,13 +19,13 @@ tokens_provisorios = [
 
 keywords = {'if', 'while', 'for', 'return', 'main', 'int', 'float', 'char'}
 
-toke_regex_jun = '|'.join(f'(?P<{name}>{pattern})'
+toke_re_jun = '|'.join(f'(?P<{name}>{pattern})'
                           for name, pattern in tokens_provisorios) #o '|' junta todos os grupos de regex em um unico e depois disso vc só nomeou os grupos e o partten e r'...'
 
 def lexer(code):
     linha =1
     inicio_linha=0
-    for match in re.finditer(toke_regex_jun, code): #percorre o codigo e procura os tokens que se encaixam nas expressões regulares
+    for match in re.finditer(toke_re_jun, code): #percorre o codigo e procura os tokens que se encaixam nas expressões regulares
         kind = match.lastgroup #Nome do grupo que deu match ex: NUM_INT
         value = match.group() # se o Kind acha o nome do grupo o value guarda oq foi achado
         if kind == 'NEW_LINE':

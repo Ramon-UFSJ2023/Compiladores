@@ -3,6 +3,6 @@ int main(){
     int a=10, resu=0;
     int b=15;
     resu=a+b;
-
+    0.0.0
     return 0;
 }
