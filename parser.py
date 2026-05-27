@@ -21,7 +21,7 @@ class Parser:
             self.current_token = None #EOF (fim do arquivo)
 
     def match(self, expected_kind, expected_value=None):
-        #Essa função é o coração do parser checa se o token atual é oq a gente espera q seja
+        #Essa função checa se o token atual é oq a gente espera q seja
         if not self.current_token:
             self.reporta_erro(f"Arquivo acabou do nada era pra achar provavelmente um {expected_kind}")
             return False
@@ -64,12 +64,12 @@ class Parser:
         #Um programa é basicamente um monte de comandos em sequencia
         statements = []
         while self.current_token:
-            stmt = self.parse_statement()
+            stmt = self.parse_direcionamento()
             if stmt:
                 statements.append(stmt)
         return statements
 
-    def parse_statement(self):
+    def parse_direcionamento(self):
         #Age como um guarda de transito, olha pro token atual e manda pra função especifica
         if not self.current_token:
             return None
@@ -77,7 +77,7 @@ class Parser:
         kind, value, _, _ = self.current_token
 
         try:
-            #Roteamento pelo tipo do token
+            #direcionamento pelo tipo do token
             if kind in ('INT', 'FLOAT', 'CHAR', 'VOID'):
                 return self.parse_declaracao_variavel()
             elif kind == 'IF':
@@ -87,7 +87,7 @@ class Parser:
             elif kind == 'FOR':
                 return self.parse_for()
             elif kind == 'IDENT': #se começou com identificador, provavel q seja uma variavel recebendo valor
-                return self.parse_assignment()
+                return self.parse_atribuicao()
             else:
                 self.reporta_erro(f"Comando iniciado com '{value}'")
                 self.panic_mode() #chama o panic mode pq n sabe oq é isso
@@ -127,7 +127,7 @@ class Parser:
 
         return {'type': 'VarDecl', 'var_type': type_token, 'name': var_name, 'value': expressao}
 
-    def parse_assignment(self):
+    def parse_atribuicao(self):
         #Ex: x = 10;
         if not self.current_token:
             self.reporta_erro("Deu erro era pra ter esperado uma atribuição.")
@@ -137,7 +137,7 @@ class Parser:
         self.advance() #consome o nome da variavel (IDENT)
 
         if not self.match('OPER_ATRIBUI', '='):
-            raise Exception("Panic") #Se não é = deu ruim
+            raise Exception("Panic")
         
         expr = self.parse_expression()
 
@@ -164,7 +164,7 @@ class Parser:
         return {'type': 'If', 'condition': condition, 'true_block': true_block, 'false_block': false_block}
 
     def parse_while(self):
-        #Basicamente o msm esquema do IF
+        #Basicamente o msm esquema do if
         self.advance() #Consome 'while'
         
         if not self.match('DELIM', '('): raise Exception("Panic")
@@ -187,7 +187,7 @@ class Parser:
         if self.current_token[0] in ('INT', 'FLOAT', 'CHAR'):
             init = self.parse_declaracao_variavel() #O parse_var já exige e consome o ';' no final
         elif self.current_token[0] == 'IDENT':
-            init = self.parse_assignment() #Mesma coisa aqui
+            init = self.parse_atribuicao() #Mesma coisa aqui
         else:
             self.match('DELIM', ';') #Se for vazio, consome só o ';'
 
@@ -216,7 +216,7 @@ class Parser:
         statements = []
         #Fica lendo comandos ate achar o fecha chaves
         while self.current_token and not (self.current_token[0] == 'DELIM' and self.current_token[1] == '}'):
-            stmt = self.parse_statement()
+            stmt = self.parse_direcionamento()
             if stmt:
                 statements.append(stmt)
         
@@ -275,7 +275,7 @@ def main():
         # Inicia o motor do Parser
         parser = Parser(tokens)
         # O parser cria a AST na memória, mas não vamos printar nem salvar
-        ast = parser.parse_program() 
+        ast = parser.parse_program() #salvei mas n printei
         
         print(f"\n--- Análise Sintática: {code_txt} ---")
         if parser.errors:
@@ -283,7 +283,7 @@ def main():
             for erro in parser.errors:
                 print(f" -> {erro}")
         else:
-            print("[SUCESSO] Código analisado 100% sem erros de sintaxe!")
+            print("Código analisado sem erros de sintaxe")
 
     except FileNotFoundError:
         print("Escreveu o nome do arquivo errado animal.")
