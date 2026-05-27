@@ -239,7 +239,7 @@ class Parser:
     def parse_termo(self):
         #Resolve o nivel mais basico da expressão (um numero, variavel, string ou algo entre parenteses)
         if not self.current_token:
-            self.reporta_erro("Faltou completar a expressão matemática ou logica")
+            self.reporta_erro("Faltou completar a expressão matemática ou a logica")
             raise Exception("Panic")
             
         kind, value, _, _ = self.current_token
