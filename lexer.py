@@ -4,11 +4,13 @@ import sys
 
 #O '\' no regex é pra falar que quero usar literalmente os significados do simbolo. Ex r'\.', literalmente usar o ponto, enquanto r'.' é qualquer caractere
 tokens_provisorios = [
-    ('NUM_FLOAT', r'\d+(\.\d+)' ), #o \d significa numero, o + significa que aceita mais de um numero "(\.\d+)" eu tinha deixado como opcional ter numeros dps do ponto, mas ai numeros inteiros n iriam entrar dentro de int
+    ('NUM_FLOAT', r'\d+(?:\.\d+)'), #o \d significa numero, o + significa que aceita mais de um numero "(\.\d+)" eu tinha deixado como opcional ter numeros dps do ponto, mas ai numeros inteiros n iriam entrar dentro de int
     ('NUM_INT', r'\d+'), #mesma coisa que o float só que aqui só aceita numeros inteiros, importante para diferenciar int e float quando for compilar o codigo
     ('IDENT', r'[a-zA-Z_]\w*'), # aqui esta dizendo que aceita qualquer letra maiscula ou minusculas, o \w é o simbolo para aceitar letra ou numero
+    ('STR_LIT',  r'"[^"]*"'),   # "texto entre aspas"
+    ('CHAR_LIT', r"'[^']{1}'"), # um único caractere
     ('OPER', r'[+\-*/%]'), #Aqui foi necessario usar o \ pra dizer que é literalmente minus e não criar um espaço de um ponto ao outro como a-z
-    ('OPER_LOG', r'&&|\|\||!=|!|<=|>=|<|>|=='), #no regex o | sem o literalmente(\) é OU por isso ele veio logo após o &&
+    ('OPER_LOG', r'&&|\|\||!=|==|!|<=|>=|<|>'), #no regex o | sem o literalmente(\) é OU por isso ele veio logo após o &&
     #Em OPER_LOG eu n coloquei dentro de uma lista, pq quando crio uma lista é selecionado apenas uma opção ent o && n funcionaria
     ('OPER_ATRIBUI', r'='), # é o operador de atribuição
     ('SKIP', r'[ \t\r]+'), # o espaço vazio é realmente que aceita um espaço e o \t é o tab. O + é pra aceitar mais de um espaço ou tab
@@ -17,7 +19,7 @@ tokens_provisorios = [
     ('TOKEN_INEX', r'.'), #Se existir um token que n seja igual os de cima ele entra aqui e sei que é um erro
 ]
 
-keywords = {'if', 'while', 'for', 'return', 'main', 'int', 'float', 'char'}
+keywords = {'if', 'while', 'for', 'return', 'main', 'int', 'float', 'char', 'else', 'void', 'break', 'continue'} #adicionei mais palavras reservadas
 
 toke_re_jun = '|'.join(f'(?P<{name}>{pattern})'
                           for name, pattern in tokens_provisorios) #o '|' junta todos os grupos de regex em um unico e depois disso vc só nomeou os grupos e o partten e r'...'
@@ -28,6 +30,7 @@ def lexer(code):
     for match in re.finditer(toke_re_jun, code): #percorre o codigo e procura os tokens que se encaixam nas expressões regulares
         kind = match.lastgroup #Nome do grupo que deu match ex: NUM_INT
         value = match.group() # se o Kind acha o nome do grupo o value guarda oq foi achado
+
         if kind == 'NEW_LINE':
             linha+=1 #se achei uma nova linha tem q incrementar na linha
             inicio_linha = match.end() #É usado para calcular a coluna corretamente na proxima linha, ele aponta onde o \n termina logico aponta tambem onde começa a proxima linha

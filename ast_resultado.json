@@ -1,0 +1,129 @@
+[
+  {
+    "type": "VarDecl",
+    "var_type": "int",
+    "name": "a",
+    "value": {
+      "type": "Literal/Var",
+      "value": "5"
+    }
+  },
+  {
+    "type": "VarDecl",
+    "var_type": "float",
+    "name": "b",
+    "value": {
+      "type": "Literal/Var",
+      "value": "10.5"
+    }
+  },
+  {
+    "type": "If",
+    "condition": {
+      "type": "BinOp",
+      "left": {
+        "type": "Literal/Var",
+        "value": "a"
+      },
+      "op": "<",
+      "right": {
+        "type": "Literal/Var",
+        "value": "b"
+      }
+    },
+    "true_block": [
+      {
+        "type": "Assignment",
+        "name": "a",
+        "value": {
+          "type": "BinOp",
+          "left": {
+            "type": "Literal/Var",
+            "value": "a"
+          },
+          "op": "+",
+          "right": {
+            "type": "Literal/Var",
+            "value": "1"
+          }
+        }
+      }
+    ],
+    "false_block": [
+      {
+        "type": "Assignment",
+        "name": "a",
+        "value": {
+          "type": "BinOp",
+          "left": {
+            "type": "Literal/Var",
+            "value": "a"
+          },
+          "op": "-",
+          "right": {
+            "type": "Literal/Var",
+            "value": "1"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "type": "For",
+    "init": {
+      "type": "VarDecl",
+      "var_type": "int",
+      "name": "i",
+      "value": {
+        "type": "Literal/Var",
+        "value": "0"
+      }
+    },
+    "condition": {
+      "type": "BinOp",
+      "left": {
+        "type": "Literal/Var",
+        "value": "i"
+      },
+      "op": "<",
+      "right": {
+        "type": "Literal/Var",
+        "value": "10"
+      }
+    },
+    "increment": {
+      "type": "Assignment",
+      "name": "i",
+      "value": {
+        "type": "BinOp",
+        "left": {
+          "type": "Literal/Var",
+          "value": "i"
+        },
+        "op": "+",
+        "right": {
+          "type": "Literal/Var",
+          "value": "1"
+        }
+      }
+    },
+    "body": [
+      {
+        "type": "Assignment",
+        "name": "b",
+        "value": {
+          "type": "BinOp",
+          "left": {
+            "type": "Literal/Var",
+            "value": "b"
+          },
+          "op": "*",
+          "right": {
+            "type": "Literal/Var",
+            "value": "2"
+          }
+        }
+      }
+    ]
+  }
+]
