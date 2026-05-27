@@ -112,7 +112,7 @@ class Parser:
             self.reporta_erro("Esqueceu o nome da variável animal")
             raise Exception("Panic")
         
-        var_name = self.current_token[1]
+        variavel_nome = self.current_token[1]
         self.advance() #Consome o nome (IDENT)
 
         expressao = None
@@ -125,7 +125,7 @@ class Parser:
         if not self.match('DELIM', ';'):
             raise Exception("Panic")
 
-        return {'type': 'VarDecl', 'var_type': type_token, 'name': var_name, 'value': expressao}
+        return {'type': 'VarDecl', 'var_type': type_token, 'name': variavel_nome, 'value': expressao}
 
     def parse_atribuicao(self):
         #Ex: x = 10;
@@ -133,7 +133,7 @@ class Parser:
             self.reporta_erro("Deu erro era pra ter esperado uma atribuição.")
             raise Exception("Panic")
 
-        var_name = self.current_token[1]
+        variavel_nome = self.current_token[1]
         self.advance() #consome o nome da variavel (IDENT)
 
         if not self.match('OPER_ATRIBUI', '='):
@@ -144,7 +144,7 @@ class Parser:
         if not self.match('DELIM', ';'):
             raise Exception("Panic")
 
-        return {'type': 'Assignment', 'name': var_name, 'value': expr}
+        return {'type': 'Assignment', 'name': variavel_nome, 'value': expr}
 
     def parse_if(self):
         self.advance() #Consome o 'if'
@@ -198,11 +198,11 @@ class Parser:
         #Parte 3: Incremento (ex: i = i + 1) -> n tem ; no final
         increment = None
         if self.current_token and self.current_token[0] == 'IDENT':
-            var_name = self.current_token[1]
+            variavel_nome = self.current_token[1]
             self.advance()
             if self.match('OPER_ATRIBUI', '='):
                 expr = self.parse_expression()
-                increment = {'type': 'Assignment', 'name': var_name, 'value': expr}
+                increment = {'type': 'Assignment', 'name': variavel_nome, 'value': expr}
         
         if not self.match('DELIM', ')'): raise Exception("Panic")
 
