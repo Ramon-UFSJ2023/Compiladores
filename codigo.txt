@@ -2,7 +2,7 @@ int a = 5;
 float b =10.5;
 
 if(a<b){
-    a = a + 1
+    a = a + 1;
 }else{
     a = a - 1;
 }
