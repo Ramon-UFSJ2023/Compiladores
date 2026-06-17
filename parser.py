@@ -102,6 +102,19 @@ class Parser:
         for nome, linha, col in lista_nao_usadas:
             self.reporta_warning(f"A variável '{nome}' foi declarada, mas nunca utilizada.", linha, col)
 
+    # --- NOVA FUNÇÃO: MOTOR DE REGRAS DE TIPAGEM ---
+    def checar_tipos_atribuicao(self, tipo_esperado, tipo_recebido, nome_var, linha, coluna):
+        if tipo_esperado == 'unknown' or tipo_recebido == 'unknown':
+            return
+            
+        if tipo_esperado == 'int' and tipo_recebido == 'float':
+            self.reporta_erro_semantico(f"Incompatibilidade: A variável '{nome_var}' é 'int' e não pode receber um valor 'float' (perda de precisão).", linha, coluna)
+        elif tipo_esperado == 'float' and tipo_recebido == 'int':
+            # Permite de forma silenciosa. Um float pode receber um int sem problemas e sem warnings.
+            pass
+        elif tipo_esperado != tipo_recebido:
+            self.reporta_erro_semantico(f"Incompatibilidade: A variável '{nome_var}' é do tipo '{tipo_esperado}', mas está recebendo '{tipo_recebido}'.", linha, coluna)
+
     def panic_mode(self):
         #se deu erro de sintaxe ele entra num laço ignorando os proximos tokens até achar um ';' ou '}' pra voltar a analisar isso evita q faltar um simples ';' crie um monte de erro falso dps.
         while self.current_token:
@@ -189,6 +202,11 @@ class Parser:
         if self.current_token and self.current_token[0] == 'OPER_ATRIBUI':
             self.advance() 
             expressao = self.parse_expression()
+            
+            # --- CHECAGEM DE TIPO NA DECLARAÇÃO ---
+            if expressao and expressao.get('eval_type'):
+                tipo_recebido = expressao['eval_type']
+                self.checar_tipos_atribuicao(type_token, tipo_recebido, variavel_nome, linha_decl, col_decl)
 
         #Independente se recebeu valor ou não TEM q fechar com ;
         if not self.match('DELIM', ';'):
@@ -216,6 +234,11 @@ class Parser:
             raise Exception("Panic")
         
         expr = self.parse_expression()
+        
+        # --- CHECAGEM DE TIPO NA ATRIBUIÇÃO ---
+        tipo_recebido = expr.get('eval_type', 'unknown')
+        if tipo_var:
+            self.checar_tipos_atribuicao(tipo_var, tipo_recebido, variavel_nome, linha_uso, col_uso)
 
         if not self.match('DELIM', ';'):
             raise Exception("Panic")
@@ -278,11 +301,18 @@ class Parser:
             linha_inc, col_inc = self.current_token[2], self.current_token[3]
             self.advance()
             
-            if not self.tabela_simbolos.buscar(variavel_nome):
+            tipo_var = self.tabela_simbolos.buscar(variavel_nome)
+            if not tipo_var:
                 self.reporta_erro_semantico(f"A variável '{variavel_nome}' usada no incremento do for não existe.", linha_inc, col_inc)
             
             if self.match('OPER_ATRIBUI', '='):
                 expr = self.parse_expression()
+                tipo_recebido = expr.get('eval_type', 'unknown')
+                
+                # --- CHECAGEM DE TIPO NO INCREMENTO DO FOR ---
+                if tipo_var:
+                    self.checar_tipos_atribuicao(tipo_var, tipo_recebido, variavel_nome, linha_inc, col_inc)
+                    
                 increment = {'type': 'Assignment', 'name': variavel_nome, 'value': expr}
         
         if not self.match('DELIM', ')'): raise Exception("Panic")
@@ -324,16 +354,25 @@ class Parser:
         #Fica num laço juntando a esquerda com a direita enquanto achar operadores
         while self.current_token and self.current_token[0] in ('OPER', 'OPER_LOG'):
             op = self.current_token[1]
+            linha_op, col_op = self.current_token[2], self.current_token[3]
             self.advance() 
             right = self.parse_termo()
             
-            eval_type = left.get('eval_type', 'unknown')
+            tipo_esq = left.get('eval_type', 'unknown')
+            tipo_dir = right.get('eval_type', 'unknown')
+            eval_type = 'unknown'
+
+            # A REGRA APLICADA AQUI: Se for matemática e tiver qualquer 'float' no meio, o resultado é 'float'
             if op in ('+', '-', '*', '/', '%'):
-                if left.get('eval_type') == 'float' or right.get('eval_type') == 'float':
+                if tipo_esq == 'char' or tipo_dir == 'char':
+                    self.reporta_erro_semantico(f"Operação matemática '{op}' não permitida com o tipo 'char'.", linha_op, col_op)
+                elif tipo_esq == 'float' or tipo_dir == 'float':
                     eval_type = 'float'
                 else:
                     eval_type = 'int'
             elif op in ('&&', '||', '!=', '==', '<=', '>=', '<', '>'):
+                if (tipo_esq == 'char' and tipo_dir != 'char') or (tipo_dir == 'char' and tipo_esq != 'char'):
+                    self.reporta_erro_semantico(f"Operação lógica '{op}' inválida entre tipos incompátiveis ('{tipo_esq}' e '{tipo_dir}').", linha_op, col_op)
                 eval_type = 'int'
 
             left = {'type': 'BinOp', 'left': left, 'op': op, 'right': right, 'eval_type': eval_type}
@@ -418,4 +457,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
