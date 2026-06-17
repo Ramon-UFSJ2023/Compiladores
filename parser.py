@@ -102,7 +102,7 @@ class Parser:
         for nome, linha, col in lista_nao_usadas:
             self.reporta_warning(f"A variável '{nome}' foi declarada, mas nunca utilizada.", linha, col)
 
-    #NOVA FUNÇÃO: MOTOR DE REGRAS DE TIPAGEM 
+    #Sera que o um int pode receber um float? acho que não ein
     def checar_tipos_atribuicao(self, tipo_esperado, tipo_recebido, nome_var, linha, coluna):
         if tipo_esperado == 'unknown' or tipo_recebido == 'unknown':
             return
@@ -110,7 +110,7 @@ class Parser:
         if tipo_esperado == 'int' and tipo_recebido == 'float':
             self.reporta_erro_semantico(f"Incompatibilidade: A variável '{nome_var}' é 'int' e não pode receber um valor 'float' (perda de precisão).", linha, coluna)
         elif tipo_esperado == 'float' and tipo_recebido == 'int':
-            #Permite de forma silenciosa. Um float pode receber um int sem problemas e sem warnings.
+            #Sim float pode receber int, mas int n pode receber float
             pass
         elif tipo_esperado != tipo_recebido:
             self.reporta_erro_semantico(f"Incompatibilidade: A variável '{nome_var}' é do tipo '{tipo_esperado}', mas está recebendo '{tipo_recebido}'.", linha, coluna)
