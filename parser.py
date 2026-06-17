@@ -1,16 +1,62 @@
 import sys
-from lexer import lexer #Puxando o lexer q vc já fiz
+from lexer import lexer # Puxando o lexer q vc já fiz
+
+class TabelaDeSimbolos:
+    def __init__(self):
+        # A tabela de símbolos é uma pilha de dicionários. Cada dicionário representa um escopo.
+        self.escopos = [{}] 
+
+    def entrar_escopo(self):
+        self.escopos.append({})
+
+    def sair_escopo(self):
+        # Varre as variáveis do bloco para ver quais não foram usadas antes de destruí-lo
+        variaveis_nao_usadas = []
+        
+        if not self.escopos: 
+            return variaveis_nao_usadas
+            
+        escopo_atual = self.escopos[-1]
+        
+        for nome, info in escopo_atual.items():
+            if not info['usada']:
+                variaveis_nao_usadas.append((nome, info['linha'], info['coluna']))
+
+        # Só sai se não for o global
+        if len(self.escopos) > 1:
+            self.escopos.pop()
+            
+        return variaveis_nao_usadas
+
+    def declarar(self, nome, tipo, linha, coluna):
+        escopo_atual = self.escopos[-1]
+        if nome in escopo_atual:
+            return False # Variável já declarada neste escopo exato
+        
+        # Salva como um dicionário para guardar se ela foi usada
+        escopo_atual[nome] = {'tipo': tipo, 'usada': False, 'linha': linha, 'coluna': coluna}
+        return True
+
+    def buscar(self, nome):
+        # Busca a variável do escopo mais interno (atual) até o mais externo (global)
+        for escopo in reversed(self.escopos):
+            if nome in escopo:
+                escopo[nome]['usada'] = True # Marca que a variável foi utilizada
+                return escopo[nome]['tipo']
+        return None
 
 class Parser:
     def __init__(self, tokens):
         self.tokens = tokens
-        self.pos = 0 #Ponteiro pra saber em qual token tá na lista
+        self.pos = 0 # Ponteiro pra saber em qual token tá na lista
         
         #Pega o primeiro token se a lista n tiver vazia
         self.current_token = self.tokens[self.pos] if self.tokens else None
         
-        #Lista pra guardar os erros e não quebrar o programa
-        self.errors = [] 
+        self.errors = [] # Lista pra guardar erros sintáticos
+        self.semantic_errors = [] # Lista pra guardar os erros semânticos
+        self.warnings = [] # Lista para guardar os warnings
+        self.tabela_simbolos = TabelaDeSimbolos() # Instancia o motor semântico
 
     def advance(self):
         #Anda uma casa na lista de tokens e pega o proximo
@@ -30,7 +76,7 @@ class Parser:
         
         #de for o tipo certo e o valor bater, se foi passado como parametro
         if kind == expected_kind and (expected_value is None or value == expected_value):
-            self.advance() #Consome o token e vai pro proximo
+            self.advance() 
             return True
         
         #Se n bateu tem problema na sintaxe
@@ -43,6 +89,18 @@ class Parser:
         if linha is None and self.current_token:
             _, _, linha, coluna = self.current_token
         self.errors.append(f"Linha {linha}, Coluna {coluna}: {message}")
+
+    def reporta_erro_semantico(self, message, linha=None, coluna=None):
+        if linha is None and self.current_token:
+            _, _, linha, coluna = self.current_token
+        self.semantic_errors.append(f"Linha {linha}, Coluna {coluna}: {message}")
+
+    def reporta_warning(self, message, linha, coluna):
+        self.warnings.append(f"Linha {linha}, Coluna {coluna}: Aviso - {message}")
+
+    def checar_variaveis_nao_usadas(self, lista_nao_usadas):
+        for nome, linha, col in lista_nao_usadas:
+            self.reporta_warning(f"A variável '{nome}' foi declarada, mas nunca utilizada.", linha, col)
 
     def panic_mode(self):
         #se deu erro de sintaxe ele entra num laço ignorando os proximos tokens até achar um ';' ou '}' pra voltar a analisar isso evita q faltar um simples ';' crie um monte de erro falso dps.
@@ -58,7 +116,7 @@ class Parser:
             if kind in ('INT', 'FLOAT', 'CHAR', 'IF', 'WHILE', 'FOR', 'RETURN'):
                 return
             
-            self.advance() #joga fora o token e tenta o proximo
+            self.advance() 
 
     def parse_program(self):
         #Um programa é basicamente um monte de comandos em sequencia
@@ -67,6 +125,11 @@ class Parser:
             stmt = self.parse_direcionamento()
             if stmt:
                 statements.append(stmt)
+                
+        # Checa variáveis não usadas no escopo global ao final do arquivo
+        nao_usadas = self.tabela_simbolos.sair_escopo()
+        self.checar_variaveis_nao_usadas(nao_usadas)
+        
         return statements
 
     def parse_direcionamento(self):
@@ -86,11 +149,11 @@ class Parser:
                 return self.parse_while()
             elif kind == 'FOR':
                 return self.parse_for()
-            elif kind == 'IDENT': #se começou com identificador, provavel q seja uma variavel recebendo valor
+            elif kind == 'IDENT': 
                 return self.parse_atribuicao()
             else:
                 self.reporta_erro(f"Comando iniciado com '{value}'")
-                self.panic_mode() #chama o panic mode pq n sabe oq é isso
+                self.panic_mode() 
                 return None
                 
         except Exception:
@@ -105,7 +168,7 @@ class Parser:
             raise Exception("Panic")
 
         type_token = self.current_token[1]
-        self.advance() #Consome o tipo (int, float, char)
+        self.advance() 
 
         #depois do tipo TEM q vir o nome da variavel
         if not self.current_token or self.current_token[0] != 'IDENT':
@@ -113,19 +176,25 @@ class Parser:
             raise Exception("Panic")
         
         variavel_nome = self.current_token[1]
-        self.advance() #Consome o nome (IDENT)
+        linha_decl, col_decl = self.current_token[2], self.current_token[3]
+        self.advance() 
+
+        # ---- INÍCIO CHECAGEM SEMÂNTICA ----
+        if not self.tabela_simbolos.declarar(variavel_nome, type_token, linha_decl, col_decl):
+            self.reporta_erro_semantico(f"A variável '{variavel_nome}' já foi declarada neste escopo.", linha_decl, col_decl)
+        # ---- FIM CHECAGEM SEMÂNTICA ----
 
         expressao = None
         #Se tiver um = logo em seguida, resolve a expressão da direita
         if self.current_token and self.current_token[0] == 'OPER_ATRIBUI':
-            self.advance() #Consome o '='
+            self.advance() 
             expressao = self.parse_expression()
 
         #Independente se recebeu valor ou não TEM q fechar com ;
         if not self.match('DELIM', ';'):
             raise Exception("Panic")
 
-        return {'type': 'VarDecl', 'var_type': type_token, 'name': variavel_nome, 'value': expressao}
+        return {'type': 'VarDecl', 'var_type': type_token, 'name': variavel_nome, 'value': expressao, 'eval_type': type_token}
 
     def parse_atribuicao(self):
         #Ex: x = 10;
@@ -134,7 +203,14 @@ class Parser:
             raise Exception("Panic")
 
         variavel_nome = self.current_token[1]
-        self.advance() #consome o nome da variavel (IDENT)
+        linha_uso, col_uso = self.current_token[2], self.current_token[3]
+        self.advance() 
+
+        # ---- INÍCIO CHECAGEM SEMÂNTICA ----
+        tipo_var = self.tabela_simbolos.buscar(variavel_nome)
+        if not tipo_var:
+            self.reporta_erro_semantico(f"A variável '{variavel_nome}' está sendo usada mas não foi declarada.", linha_uso, col_uso)
+        # ---- FIM CHECAGEM SEMÂNTICA ----
 
         if not self.match('OPER_ATRIBUI', '='):
             raise Exception("Panic")
@@ -147,25 +223,24 @@ class Parser:
         return {'type': 'Assignment', 'name': variavel_nome, 'value': expr}
 
     def parse_if(self):
-        self.advance() #Consome o 'if'
+        self.advance() 
         
         if not self.match('DELIM', '('): raise Exception("Panic")
-        condition = self.parse_expression() #dentro dos parenteses tem q ter expressão
+        condition = self.parse_expression() 
         if not self.match('DELIM', ')'): raise Exception("Panic")
 
-        true_block = self.parse_block() #Conteudo de dentro das chaves {}
+        true_block = self.parse_block() 
         false_block = None
 
         #O else é opcional, checa se ele existe
         if self.current_token and self.current_token[0] == 'ELSE':
-            self.advance() #consome 'else'
+            self.advance() 
             false_block = self.parse_block()
 
         return {'type': 'If', 'condition': condition, 'true_block': true_block, 'false_block': false_block}
 
     def parse_while(self):
-        #Basicamente o msm esquema do if
-        self.advance() #Consome 'while'
+        self.advance() 
         
         if not self.match('DELIM', '('): raise Exception("Panic")
         condition = self.parse_expression()
@@ -175,21 +250,22 @@ class Parser:
         return {'type': 'While', 'condition': condition, 'body': block}
 
     def parse_for(self):
-        self.advance() #Consome 'for'
+        self.advance() 
         if not self.match('DELIM', '('): raise Exception("Panic")
 
         if not self.current_token:
             self.reporta_erro("Arquivo acabou no meio do 'for'.")
             raise Exception("Panic")
 
-        #Parte 1: Inicialização (ex: int i = 0;)
+        self.tabela_simbolos.entrar_escopo() 
+
         init = None
         if self.current_token[0] in ('INT', 'FLOAT', 'CHAR'):
-            init = self.parse_declaracao_variavel() #O parse_var já exige e consome o ';' no final
+            init = self.parse_declaracao_variavel() 
         elif self.current_token[0] == 'IDENT':
-            init = self.parse_atribuicao() #Mesma coisa aqui
+            init = self.parse_atribuicao() 
         else:
-            self.match('DELIM', ';') #Se for vazio, consome só o ';'
+            self.match('DELIM', ';') 
 
         #Parte 2: Condição (ex: i < 10;)
         condition = self.parse_expression()
@@ -199,20 +275,32 @@ class Parser:
         increment = None
         if self.current_token and self.current_token[0] == 'IDENT':
             variavel_nome = self.current_token[1]
+            linha_inc, col_inc = self.current_token[2], self.current_token[3]
             self.advance()
+            
+            if not self.tabela_simbolos.buscar(variavel_nome):
+                self.reporta_erro_semantico(f"A variável '{variavel_nome}' usada no incremento do for não existe.", linha_inc, col_inc)
+            
             if self.match('OPER_ATRIBUI', '='):
                 expr = self.parse_expression()
                 increment = {'type': 'Assignment', 'name': variavel_nome, 'value': expr}
         
         if not self.match('DELIM', ')'): raise Exception("Panic")
 
-        block = self.parse_block()
+        block = self.parse_block(cria_escopo=False)
+        
+        # Gera warnings ao sair do escopo do for
+        nao_usadas = self.tabela_simbolos.sair_escopo() 
+        self.checar_variaveis_nao_usadas(nao_usadas)
+
         return {'type': 'For', 'init': init, 'condition': condition, 'increment': increment, 'body': block}
 
-    def parse_block(self):
-        #Valida blocos de codigo q ficam entre {}
+    def parse_block(self, cria_escopo=True):
         if not self.match('DELIM', '{'): raise Exception("Panic")
         
+        if cria_escopo:
+            self.tabela_simbolos.entrar_escopo()
+            
         statements = []
         #Fica lendo comandos ate achar o fecha chaves
         while self.current_token and not (self.current_token[0] == 'DELIM' and self.current_token[1] == '}'):
@@ -221,6 +309,12 @@ class Parser:
                 statements.append(stmt)
         
         if not self.match('DELIM', '}'): raise Exception("Panic")
+        
+        if cria_escopo:
+            # Gera warnings ao fechar chaves de um bloco
+            nao_usadas = self.tabela_simbolos.sair_escopo()
+            self.checar_variaveis_nao_usadas(nao_usadas) 
+            
         return statements
 
     def parse_expression(self):
@@ -230,10 +324,20 @@ class Parser:
         #Fica num laço juntando a esquerda com a direita enquanto achar operadores
         while self.current_token and self.current_token[0] in ('OPER', 'OPER_LOG'):
             op = self.current_token[1]
-            self.advance() #Consome o operador
+            self.advance() 
             right = self.parse_termo()
-            left = {'type': 'BinOp', 'left': left, 'op': op, 'right': right}
-        
+            
+            eval_type = left.get('eval_type', 'unknown')
+            if op in ('+', '-', '*', '/', '%'):
+                if left.get('eval_type') == 'float' or right.get('eval_type') == 'float':
+                    eval_type = 'float'
+                else:
+                    eval_type = 'int'
+            elif op in ('&&', '||', '!=', '==', '<=', '>=', '<', '>'):
+                eval_type = 'int'
+
+            left = {'type': 'BinOp', 'left': left, 'op': op, 'right': right, 'eval_type': eval_type}
+            
         return left
 
     def parse_termo(self):
@@ -242,12 +346,26 @@ class Parser:
             self.reporta_erro("Faltou completar a expressão matemática ou a logica")
             raise Exception("Panic")
             
-        kind, value, _, _ = self.current_token
+        kind, value, linha, coluna = self.current_token
+        eval_type = 'unknown'
         
         if kind in ('IDENT', 'NUM_INT', 'NUM_FLOAT', 'STR_LIT', 'CHAR_LIT'):
             self.advance()
-            return {'type': 'Literal/Var', 'value': value}
-        elif kind == 'DELIM' and value == '(': #Se achar parenteses, entra em recursão pra resolver oq tem dentro
+            
+            if kind == 'IDENT':
+                tipo_var = self.tabela_simbolos.buscar(value)
+                if not tipo_var:
+                    self.reporta_erro_semantico(f"A variável '{value}' usada na expressão não foi declarada.", linha, coluna)
+                else:
+                    eval_type = tipo_var
+            elif kind == 'NUM_INT': eval_type = 'int'
+            elif kind == 'NUM_FLOAT': eval_type = 'float'
+            elif kind == 'STR_LIT': eval_type = 'char'
+            elif kind == 'CHAR_LIT': eval_type = 'char'
+            
+            return {'type': 'Literal/Var', 'value': value, 'eval_type': eval_type}
+            
+        elif kind == 'DELIM' and value == '(': 
             self.advance()
             expr = self.parse_expression()
             if not self.match('DELIM', ')'): raise Exception("Panic")
@@ -267,23 +385,33 @@ def main():
     try:
         with open(code_txt, 'r') as arq:
             code = arq.read()            
-        # Pega os tokens limpos do lexer
+            
         tokens = []
         for token in lexer(code):
             if token[0] != 'TOKEN_INEX':
                 tokens.append(token)        
-        # Inicia o motor do Parser
+                
         parser = Parser(tokens)
-        # O parser cria a AST na memória, mas não vamos printar nem salvar
-        ast = parser.parse_program() #salvei mas n printei
+        ast = parser.parse_program() 
         
-        print(f"\n--- Análise Sintática: {code_txt} ---")
-        if parser.errors:
-            print(f"O parser achou {len(parser.errors)} erro(s) de sintaxe:")
-            for erro in parser.errors:
-                print(f" -> {erro}")
+        print(f"\n--- Análise Sintática e Semântica: {code_txt} ---")
+        if parser.errors or parser.semantic_errors or parser.warnings:
+            if parser.errors:
+                print(f"\nO parser achou {len(parser.errors)} erro(s) de sintaxe:")
+                for erro in parser.errors:
+                    print(f" -> {erro}")
+            
+            if parser.semantic_errors:
+                print(f"\nO analisador semântico achou {len(parser.semantic_errors)} erro(s) semântico(s):")
+                for erro in parser.semantic_errors:
+                    print(f" -> {erro}")
+                    
+            if parser.warnings:
+                print(f"\nO analisador gerou {len(parser.warnings)} WARNING(S):")
+                for aviso in parser.warnings:
+                    print(f" -> {aviso}")
         else:
-            print("Código analisado sem erros de sintaxe")
+            print("Código analisado sem erros de sintaxe, regras semânticas válidas e nenhum warning!")
 
     except FileNotFoundError:
         print("Escreveu o nome do arquivo errado animal.")

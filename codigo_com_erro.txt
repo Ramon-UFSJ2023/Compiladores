@@ -1,0 +1,19 @@
+int principal = 1;
+int principal = 2; 
+
+float valor_pi = 3.14; 
+
+nao_existo = 100; 
+
+if (principal == 1) {
+    int temporaria = 50;
+    principal = principal + temporaria; 
+}
+
+temporaria = 10; 
+
+for (int i = 0; i < 10; k = k + 1) { 
+    principal = principal * 2;
+}
+
+char letra = 'z';
