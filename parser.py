@@ -1,16 +1,16 @@
 import sys
-from lexer import lexer # Puxando o lexer q vc já fiz
+from lexer import lexer #Puxando o lexer q vc já fiz
 
 class TabelaDeSimbolos:
     def __init__(self):
-        # A tabela de símbolos é uma pilha de dicionários. Cada dicionário representa um escopo.
+        #A tabela de símbolos é uma pilha de dicionários. Cada dicionário representa um escopo.
         self.escopos = [{}] 
 
     def entrar_escopo(self):
         self.escopos.append({})
 
     def sair_escopo(self):
-        # Varre as variáveis do bloco para ver quais não foram usadas antes de destruí-lo
+        #Varre as variáveis do bloco para ver quais não foram usadas antes de destruí-lo
         variaveis_nao_usadas = []
         
         if not self.escopos: 
@@ -22,7 +22,7 @@ class TabelaDeSimbolos:
             if not info['usada']:
                 variaveis_nao_usadas.append((nome, info['linha'], info['coluna']))
 
-        # Só sai se não for o global
+        #Só sai se não for o global
         if len(self.escopos) > 1:
             self.escopos.pop()
             
@@ -31,32 +31,32 @@ class TabelaDeSimbolos:
     def declarar(self, nome, tipo, linha, coluna):
         escopo_atual = self.escopos[-1]
         if nome in escopo_atual:
-            return False # Variável já declarada neste escopo exato
+            return False #Variável já declarada neste escopo exato
         
-        # Salva como um dicionário para guardar se ela foi usada
+        #Salva como um dicionário para guardar se ela foi usada
         escopo_atual[nome] = {'tipo': tipo, 'usada': False, 'linha': linha, 'coluna': coluna}
         return True
 
-    def buscar(self, nome):
-        # Busca a variável do escopo mais interno (atual) até o mais externo (global)
+    def buscar_geral(self, nome):
+        #Busca a variável do escopo mais interno (atual) até o mais externo (global)
         for escopo in reversed(self.escopos):
             if nome in escopo:
-                escopo[nome]['usada'] = True # Marca que a variável foi utilizada
+                escopo[nome]['usada'] = True #Marca que a variável foi utilizada
                 return escopo[nome]['tipo']
         return None
 
 class Parser:
     def __init__(self, tokens):
         self.tokens = tokens
-        self.pos = 0 # Ponteiro pra saber em qual token tá na lista
+        self.pos = 0 #Ponteiro pra saber em qual token tá na lista
         
         #Pega o primeiro token se a lista n tiver vazia
         self.current_token = self.tokens[self.pos] if self.tokens else None
         
-        self.errors = [] # Lista pra guardar erros sintáticos
-        self.semantic_errors = [] # Lista pra guardar os erros semânticos
-        self.warnings = [] # Lista para guardar os warnings
-        self.tabela_simbolos = TabelaDeSimbolos() # Instancia o motor semântico
+        self.errors = [] #Lista pra guardar erros sintáticos
+        self.semantic_errors = [] #Lista pra guardar os erros semânticos
+        self.warnings = [] #Lista para guardar os warnings
+        self.tabela_simbolos = TabelaDeSimbolos() #Instancia o motor semântico
 
     def advance(self):
         #Anda uma casa na lista de tokens e pega o proximo
@@ -102,7 +102,7 @@ class Parser:
         for nome, linha, col in lista_nao_usadas:
             self.reporta_warning(f"A variável '{nome}' foi declarada, mas nunca utilizada.", linha, col)
 
-    # --- NOVA FUNÇÃO: MOTOR DE REGRAS DE TIPAGEM ---
+    #NOVA FUNÇÃO: MOTOR DE REGRAS DE TIPAGEM 
     def checar_tipos_atribuicao(self, tipo_esperado, tipo_recebido, nome_var, linha, coluna):
         if tipo_esperado == 'unknown' or tipo_recebido == 'unknown':
             return
@@ -110,7 +110,7 @@ class Parser:
         if tipo_esperado == 'int' and tipo_recebido == 'float':
             self.reporta_erro_semantico(f"Incompatibilidade: A variável '{nome_var}' é 'int' e não pode receber um valor 'float' (perda de precisão).", linha, coluna)
         elif tipo_esperado == 'float' and tipo_recebido == 'int':
-            # Permite de forma silenciosa. Um float pode receber um int sem problemas e sem warnings.
+            #Permite de forma silenciosa. Um float pode receber um int sem problemas e sem warnings.
             pass
         elif tipo_esperado != tipo_recebido:
             self.reporta_erro_semantico(f"Incompatibilidade: A variável '{nome_var}' é do tipo '{tipo_esperado}', mas está recebendo '{tipo_recebido}'.", linha, coluna)
@@ -139,7 +139,7 @@ class Parser:
             if stmt:
                 statements.append(stmt)
                 
-        # Checa variáveis não usadas no escopo global ao final do arquivo
+        #Checa variáveis não usadas no escopo global ao final do arquivo
         nao_usadas = self.tabela_simbolos.sair_escopo()
         self.checar_variaveis_nao_usadas(nao_usadas)
         
@@ -192,10 +192,10 @@ class Parser:
         linha_decl, col_decl = self.current_token[2], self.current_token[3]
         self.advance() 
 
-        # ---- INÍCIO CHECAGEM SEMÂNTICA ----
+        #INÍCIO CHECAGEM SEMÂNTICA 
         if not self.tabela_simbolos.declarar(variavel_nome, type_token, linha_decl, col_decl):
             self.reporta_erro_semantico(f"A variável '{variavel_nome}' já foi declarada neste escopo.", linha_decl, col_decl)
-        # ---- FIM CHECAGEM SEMÂNTICA ----
+        #FIM CHECAGEM SEMÂNTICA 
 
         expressao = None
         #Se tiver um = logo em seguida, resolve a expressão da direita
@@ -203,7 +203,7 @@ class Parser:
             self.advance() 
             expressao = self.parse_expression()
             
-            # --- CHECAGEM DE TIPO NA DECLARAÇÃO ---
+            #CHECAGEM DE TIPO NA DECLARAÇÃO 
             if expressao and expressao.get('eval_type'):
                 tipo_recebido = expressao['eval_type']
                 self.checar_tipos_atribuicao(type_token, tipo_recebido, variavel_nome, linha_decl, col_decl)
@@ -224,18 +224,18 @@ class Parser:
         linha_uso, col_uso = self.current_token[2], self.current_token[3]
         self.advance() 
 
-        # ---- INÍCIO CHECAGEM SEMÂNTICA ----
-        tipo_var = self.tabela_simbolos.buscar(variavel_nome)
+        #INÍCIO CHECAGEM SEMÂNTICA
+        tipo_var = self.tabela_simbolos.buscar_geral(variavel_nome)
         if not tipo_var:
             self.reporta_erro_semantico(f"A variável '{variavel_nome}' está sendo usada mas não foi declarada.", linha_uso, col_uso)
-        # ---- FIM CHECAGEM SEMÂNTICA ----
+        #FIM CHECAGEM SEMÂNTICA 
 
         if not self.match('OPER_ATRIBUI', '='):
             raise Exception("Panic")
         
         expr = self.parse_expression()
         
-        # --- CHECAGEM DE TIPO NA ATRIBUIÇÃO ---
+        #CHECAGEM DE TIPO NA ATRIBUIÇÃO 
         tipo_recebido = expr.get('eval_type', 'unknown')
         if tipo_var:
             self.checar_tipos_atribuicao(tipo_var, tipo_recebido, variavel_nome, linha_uso, col_uso)
@@ -301,7 +301,7 @@ class Parser:
             linha_inc, col_inc = self.current_token[2], self.current_token[3]
             self.advance()
             
-            tipo_var = self.tabela_simbolos.buscar(variavel_nome)
+            tipo_var = self.tabela_simbolos.buscar_geral(variavel_nome)
             if not tipo_var:
                 self.reporta_erro_semantico(f"A variável '{variavel_nome}' usada no incremento do for não existe.", linha_inc, col_inc)
             
@@ -309,7 +309,7 @@ class Parser:
                 expr = self.parse_expression()
                 tipo_recebido = expr.get('eval_type', 'unknown')
                 
-                # --- CHECAGEM DE TIPO NO INCREMENTO DO FOR ---
+                #CHECAGEM DE TIPO NO INCREMENTO DO FOR 
                 if tipo_var:
                     self.checar_tipos_atribuicao(tipo_var, tipo_recebido, variavel_nome, linha_inc, col_inc)
                     
@@ -319,7 +319,7 @@ class Parser:
 
         block = self.parse_block(cria_escopo=False)
         
-        # Gera warnings ao sair do escopo do for
+        #Gera warnings ao sair do escopo do for
         nao_usadas = self.tabela_simbolos.sair_escopo() 
         self.checar_variaveis_nao_usadas(nao_usadas)
 
@@ -341,7 +341,7 @@ class Parser:
         if not self.match('DELIM', '}'): raise Exception("Panic")
         
         if cria_escopo:
-            # Gera warnings ao fechar chaves de um bloco
+            #Gera warnings ao fechar chaves de um bloco
             nao_usadas = self.tabela_simbolos.sair_escopo()
             self.checar_variaveis_nao_usadas(nao_usadas) 
             
@@ -362,7 +362,7 @@ class Parser:
             tipo_dir = right.get('eval_type', 'unknown')
             eval_type = 'unknown'
 
-            # A REGRA APLICADA AQUI: Se for matemática e tiver qualquer 'float' no meio, o resultado é 'float'
+            #A REGRA APLICADA AQUI: Se for matemática e tiver qualquer 'float' no meio, o resultado é 'float'
             if op in ('+', '-', '*', '/', '%'):
                 if tipo_esq == 'char' or tipo_dir == 'char':
                     self.reporta_erro_semantico(f"Operação matemática '{op}' não permitida com o tipo 'char'.", linha_op, col_op)
@@ -392,7 +392,7 @@ class Parser:
             self.advance()
             
             if kind == 'IDENT':
-                tipo_var = self.tabela_simbolos.buscar(value)
+                tipo_var = self.tabela_simbolos.buscar_geral(value)
                 if not tipo_var:
                     self.reporta_erro_semantico(f"A variável '{value}' usada na expressão não foi declarada.", linha, coluna)
                 else:
@@ -433,7 +433,7 @@ def main():
         parser = Parser(tokens)
         ast = parser.parse_program() 
         
-        print(f"\n--- Análise Sintática e Semântica: {code_txt} ---")
+        print(f"\n Análise Sintática e Semântica: {code_txt} ")
         if parser.errors or parser.semantic_errors or parser.warnings:
             if parser.errors:
                 print(f"\nO parser achou {len(parser.errors)} erro(s) de sintaxe:")
